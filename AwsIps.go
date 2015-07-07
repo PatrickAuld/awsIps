@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 )
 
 const IP_URL = "https://ip-ranges.amazonaws.com/ip-ranges.json"
@@ -20,12 +21,15 @@ type Response struct {
 }
 
 func main() {
+	delPtr := flag.String("delimiter", "\n", "delimiter")
+	flag.Parse()
+
 	r := getJson()
 	ips := make(chan string)
 	done := make(chan bool)
 	// Totally unnecessary but fun :)
 	go getIps(r.Prefixes, ips)
-	go printIps(ips, done)
+	go printIps(ips, done, *delPtr)
 	<-done
 }
 
@@ -44,16 +48,16 @@ func getJson() Response {
 	return r
 }
 
-func printIps(ips chan string, done chan bool){
+func printIps(ips chan string, done chan bool, delimiter string) {
 	first := true
 	for {
 		ip, more := <-ips
 		if more {
-			if( first ){
+			if first {
 				fmt.Print(ip)
 				first = false
 			} else {
-				fmt.Print(",", ip)
+				fmt.Printf("%s%s", delimiter, ip)
 			}
 		} else {
 			break
